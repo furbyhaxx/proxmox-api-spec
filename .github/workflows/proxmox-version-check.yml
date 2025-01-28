@@ -22,7 +22,7 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Make script executable
-        run: chmod +x scripts/generate-version-list.sh.sh
+        run: chmod +x scripts/generate-version-list.sh
 
       - name: Generate version list and filter existing tags
         id: generate
@@ -31,7 +31,7 @@ jobs:
           git fetch --prune --tags
 
           # Run the script to get lines in the format "distro/version"
-          versions=$(./scripts/generate-version-list.sh.sh)
+          versions=$(./scripts/generate-version-list.sh)
 
           echo "Found versions:"
           echo "$versions"
