@@ -19,7 +19,7 @@ while IFS= read -r distro; do
         # Skip empty lines just in case
         [[ -z "$version" ]] && continue
 
-      echo "$distro/$version"
+      echo "$version/$distro"
       done <<< "$version_list"
 
 done <<< "$distro_list"
