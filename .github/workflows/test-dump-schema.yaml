@@ -54,7 +54,8 @@ jobs:
 
           # Run the container, executing the Perl script inside
           docker run --rm proxmox-api \
-            perl /app/extractapi.pl > "proxmox-ve-api-${PROXMOX_VERSION}.json"
+            ls -lah .
+           # perl /app/extractapi.pl > "proxmox-ve-api-${PROXMOX_VERSION}.json"
 
           echo "Generated proxmox-ve-api-${PROXMOX_VERSION}.json"
 
