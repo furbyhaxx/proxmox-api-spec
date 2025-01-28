@@ -64,17 +64,7 @@ jobs:
           to_matrix=$(echo "$to_matrix" | jq -c . )
           echo "matrix=$to_matrix" >> $GITHUB_OUTPUT
 
-
-
-  test_matrix:
-    name: "test matrix"
-    runs-on: ubuntu-latest
-    needs: get_versions
-    steps:
-      - name: test1
-        run: |
-          echo "${{ needs.get_versions.outputs.matrix }}"
-        
+       
   dump_and_release:
     name: Dump APIs and make releases
     runs-on: ubuntu-latest
@@ -85,17 +75,78 @@ jobs:
         distro-version: ${{ fromJson(needs.get_versions.outputs.matrix) }}
 
     steps:
-      - name: Check out repository (with credentials to push)
+      - name: Checkout
         uses: actions/checkout@v3
         with:
-          # If you need to push commits/tags, keep credentials
           persist-credentials: true
-
-      - name: Dump schema for ${{ matrix.distro-version.distro }}/${{ matrix.distro-version.version }}
-        id: dump_schema
+          
+      - name: Prepare
+        id: prepare
         run: |
-          DISTRO="${{ matrix.distro-version.distro }}"
-          PROXMOX_VERSION="${{ matrix.distro-version.version }}"
+          echo "distro="{{ matrix.distro-version.distro }}" >> "$GITHUB_OUTPUT"
+          echo "proxmox_version=${{ matrix.distro-version.version }}" >> "$GITHUB_OUTPUT"
+          
+      - name: Setup Docker Container
+        run: |
+          DISTRO="${{ steps.prepare.outputs.distro }}"
+          PROXMOX_VERSION="${{ steps.prepare.outputs.proxmox_version }}"
+          docker_tag="proxmox-dump-schema:${PROXMOX_VERSION}"
+          schema_file="proxmox-api-schema-${PROXMOX_VERSION}.json"
 
-          echo "Would run for distro=$DISTRO and version=$PROXMOX_VERSION"
+          echo "Building container for distro=$DISTRO and version=$PROXMOX_VERSION"
+
+
+          sudo chmod +x dump-schema/dump-schema.pl
+          # Build Docker image
+          docker build --platform=linux/amd64 \
+            --tag "proxmox-api" \
+            --build-arg DISTRO="${DISTRO}" \
+            --build-arg PROXMOX_VERSION="${PROXMOX_VERSION}" \
+            "./dump-schema"
+
+      - name: Run container and extract API
+        id: extract_api
+        run: |
+          DISTRO="${{ steps.prepare.outputs.distro }}"
+          PROXMOX_VERSION="${{ steps.prepare.outputs.proxmox_version }}"
+
+          echo "Running container and dumping API schema"
+
+          # Run the container, executing the Perl script inside
+          docker run --rm proxmox-api \
+            perl /app/dump-schema.pl > "proxmox-ve-api-${PROXMOX_VERSION}.json"
+
+          echo "Generated proxmox-ve-api-${PROXMOX_VERSION}.json"
+
+          echo ""
+
+          echo "$(cat "proxmox-ve-api-${PROXMOX_VERSION}.json")"
+
+      - name: Commit and push JSON file
+        run: |
+          PROXMOX_VERSION="${{ steps.prepare.outputs.proxmox_version }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Commit the new JSON file
+          git add "proxmox-ve-api-${PROXMOX_VERSION}.json"
+          git commit -m "Add proxmox-ve-api-${PROXMOX_VERSION}.json" || echo "Nothing to commit"
+
+          # Create a new tag
+          git tag "${PROXMOX_VERSION}"
+
+          # Push commit and tag
+          git push origin HEAD
+          git push origin "${PROXMOX_VERSION}"
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+#        if: ${{ hashFiles("proxmox-ve-api-${{ steps.prepare.outputs.proxmox_version }}.json") != '' }}
+        with:
+          tag_name: ${{ steps.prepare.outputs.proxmox_version }}
+          name: "Proxmox VE API Schema ${{ steps.prepare.outputs.proxmox_version }}"
+          body: "Includes proxmox-ve-api-${{ steps.prepare.outputs.proxmox_version }}.json"
+          draft: false
+          prerelease: false
+          files: proxmox-ve-api-${{ steps.prepare.outputs.proxmox_version }}.json
 
