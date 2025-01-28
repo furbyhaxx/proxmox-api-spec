@@ -37,6 +37,8 @@ jobs:
 
           echo "Building container for distro=$DISTRO and version=$PROXMOX_VERSION"
 
+
+          sudo chmod +x dump-schema/dump-schema.pl
           # Build Docker image
           docker build --platform=linux/amd64 \
             --tag "proxmox-api" \
@@ -54,8 +56,7 @@ jobs:
 
           # Run the container, executing the Perl script inside
           docker run --rm proxmox-api \
-            ls -lah ./app
-           # perl /app/extractapi.pl > "proxmox-ve-api-${PROXMOX_VERSION}.json"
+            perl /app/dump-schema.pl > "proxmox-ve-api-${PROXMOX_VERSION}.json"
 
           echo "Generated proxmox-ve-api-${PROXMOX_VERSION}.json"
 
