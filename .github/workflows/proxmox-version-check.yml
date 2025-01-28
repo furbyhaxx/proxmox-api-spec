@@ -136,7 +136,9 @@ jobs:
           git commit -m "Add proxmox-ve-api-${PROXMOX_VERSION}.json" || echo "Nothing to commit"
 
           # pull other changes
-          git pull origin
+          #git config pull.rebase false
+          git pull --rebase origin main
+          #git pull origin
 
           # Push commit and tag
           git push origin HEAD
