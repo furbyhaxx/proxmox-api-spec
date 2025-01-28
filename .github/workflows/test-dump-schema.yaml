@@ -11,7 +11,7 @@ env:
 
 jobs:
   dump_schema:
-    name: Dump API Schema for pve-${{ env.PROXMOX_VERSION }} on ${{ env.DISTRO }}
+    name: Dump API Schema
     runs-on: ubuntu-latest
     outputs:
       distro: ${{ steps.prepare.outputs.distro }}
