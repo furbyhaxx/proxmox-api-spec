@@ -83,7 +83,7 @@ jobs:
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
-        if: ${{ hashFiles("proxmox-ve-api-${{ steps.prepare.outputs.proxmox_version }}.json") != '' }}
+#        if: ${{ hashFiles("proxmox-ve-api-${{ steps.prepare.outputs.proxmox_version }}.json") != '' }}
         with:
           tag_name: ${{ steps.prepare.outputs.proxmox_version }}
           name: "Proxmox VE API Schema ${{ steps.prepare.outputs.proxmox_version }}"
