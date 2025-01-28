@@ -96,7 +96,6 @@ jobs:
 
           echo "Building container for distro=$DISTRO and version=$PROXMOX_VERSION"
 
-
           sudo chmod +x dump-schema/dump-schema.pl
           # Build Docker image
           docker build --platform=linux/amd64 \
@@ -129,12 +128,15 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
+          # Create a new tag
+          git tag "${PROXMOX_VERSION}"
+
           # Commit the new JSON file
           git add "proxmox-ve-api-${PROXMOX_VERSION}.json"
           git commit -m "Add proxmox-ve-api-${PROXMOX_VERSION}.json" || echo "Nothing to commit"
 
-          # Create a new tag
-          git tag "${PROXMOX_VERSION}"
+          # pull other changes
+          git pull origin
 
           # Push commit and tag
           git push origin HEAD
