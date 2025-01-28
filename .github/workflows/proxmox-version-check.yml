@@ -1,0 +1,68 @@
+name: Proxmox Version Check
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * *'  # run daily at midnight
+
+permissions:
+  contents: write
+
+
+jobs:
+  get_versions:
+    name: Get Missing Proxmox Versions
+    runs-on: ubuntu-latest
+
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v3
+
+      - name: Make script executable
+        run: chmod +x scripts/generate-version-list.sh.sh
+
+      - name: Generate version list and filter existing tags
+        id: generate
+        run: |
+          # Fetch latest tags from remote
+          git fetch --prune --tags
+
+          # Run the script to get lines in the format "distro/version"
+          versions=$(./scripts/generate-version-list.sh.sh)
+
+          echo "Found versions:"
+          echo "$versions"
+
+          # build a JSON array for the matrix strategy
+          to_matrix="[]"
+
+          # Install jq if it's not present
+          sudo apt-get update -y && sudo apt-get install -y jq
+
+          # Loop over each line "distro/version"
+          for line in $versions; do
+            distro=$(echo "$line" | cut -d/ -f1)
+            version=$(echo "$line" | cut -d/ -f2-)
+
+            # Check if the tag already exists locally
+            if git rev-parse -q --verify "refs/tags/$version" >/dev/null; then
+              echo "Tag $version already exists. Skipping."
+            else
+              # Add to JSON array for matrix
+              to_matrix=$(echo "$to_matrix" | jq --arg distro "$distro" --arg version "$version" '. + [{"distro": $distro, "version": $version}]')
+            fi
+          done
+
+          echo "Matrix for build: $to_matrix"
+
+          # Use newer method of setting step outputs
+          echo "matrix=$to_matrix" >> $GITHUB_OUTPUT
+
+      - name: Set the matrix output
+        id: set-matrix
+        run: |
+          echo "matrix=${{ steps.generate.outputs.matrix }}"
+        # The step above is only to make the output appear in logs.
