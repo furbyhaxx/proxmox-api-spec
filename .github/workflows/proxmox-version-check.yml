@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
 
     outputs:
-      matrix: ${{ steps.set-matrix.outputs.matrix }}
+      matrix: ${{ steps.generate.outputs.matrix }}
 
     steps:
       - name: Check out repository
@@ -87,6 +87,7 @@ jobs:
         with:
           # If you need to push commits/tags, keep credentials
           persist-credentials: true
+
       - name: Test
         id: test
         run: |
