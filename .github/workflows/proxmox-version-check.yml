@@ -8,7 +8,6 @@ on:
 permissions:
   contents: write
 
-
 jobs:
   get_versions:
     name: Get Missing Proxmox Versions
@@ -85,7 +84,7 @@ jobs:
       - name: Prepare
         id: prepare
         run: |
-          echo "distro="{{ matrix.distro-version.distro }}" >> "$GITHUB_OUTPUT"
+          echo "distro=${{ matrix.distro-version.distro }}" >> "$GITHUB_OUTPUT"
           echo "proxmox_version=${{ matrix.distro-version.version }}" >> "$GITHUB_OUTPUT"
           
       - name: Setup Docker Container
