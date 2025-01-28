@@ -65,6 +65,7 @@ jobs:
         id: set-matrix
         run: |
           echo "matrix=${{ steps.generate.outputs.matrix }}"
+          echo "::set-output name=matrix::${{ steps.generate.outputs.matrix }}"
         # The step above is only to make the output appear in logs.
         
   dump_and_release:
