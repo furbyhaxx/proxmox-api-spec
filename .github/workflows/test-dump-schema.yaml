@@ -64,3 +64,30 @@ jobs:
 
           echo "$(cat "proxmox-ve-api-${PROXMOX_VERSION}.json")"
 
+      - name: Commit and push JSON file
+        run: |
+          PROXMOX_VERSION="${{ steps.prepare.outputs.proxmox_version }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Commit the new JSON file
+          git add "proxmox-ve-api-${PROXMOX_VERSION}.json"
+          git commit -m "Add proxmox-ve-api-${PROXMOX_VERSION}.json" || echo "Nothing to commit"
+
+          # Create a new tag
+          git tag "${PROXMOX_VERSION}"
+
+          # Push commit and tag
+          git push origin HEAD
+          git push origin "${PROXMOX_VERSION}"
+
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        with:
+          tag_name: ${{ steps.prepare.outputs.proxmox_version }}
+          release_name: "Proxmox VE API Schema ${{ steps.prepare.outputs.proxmox_version }}"
+          body: "Includes proxmox-ve-api-${{ steps.prepare.outputs.proxmox_version }}.json"
+          draft: false
+          prerelease: false
+          # Attach the JSON file
+          asset_paths: "proxmox-ve-api-${{ steps.prepare.outputs.proxmox_version }}.json"
