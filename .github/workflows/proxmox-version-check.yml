@@ -61,7 +61,7 @@ jobs:
           # Use newer method of setting step outputs
           #echo "::set-output name=matrix::${{ steps.generate.outputs.matrix }}"
           #echo "matrix=$to_matrix" >> $GITHUB_OUTPUT
-          to_matrix=$(echo $to_matrix | jq -r . )
+          to_matrix=$(echo "$to_matrix" | jq -c . )
           echo "matrix=$to_matrix" >> $GITHUB_OUTPUT
 
 
