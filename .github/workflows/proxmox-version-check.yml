@@ -71,6 +71,15 @@ jobs:
           #echo "matrix=${{ steps.generate.outputs.matrix }}"
           #echo "::set-output name=matrix::${{ steps.generate.outputs.matrix }}"
         # The step above is only to make the output appear in logs.
+
+  test_matrix:
+    name: "test matrix"
+    runs-on: ubuntu-latest
+    needs: get_versions
+    steps:
+      - name: test1
+        run: |
+          echo "${{ needs.get_versions.outputs.matrix }}"
         
   dump_and_release:
     name: Dump APIs and make releases
