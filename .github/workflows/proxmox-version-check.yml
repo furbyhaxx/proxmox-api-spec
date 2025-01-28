@@ -130,7 +130,7 @@ jobs:
 
           git stash
           git pull
-          git stash po
+          git stash pop
 
           # Create a new tag
           git tag "${PROXMOX_VERSION}"
