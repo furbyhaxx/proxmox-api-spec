@@ -56,18 +56,20 @@ jobs:
             fi
           done
 
-          echo "Matrix for build: $to_matrix"
+          #echo "Matrix for build: $to_matrix"
 
           # Use newer method of setting step outputs
-          echo "::set-output name=matrix::${{ steps.generate.outputs.matrix }}"
+          #echo "::set-output name=matrix::${{ steps.generate.outputs.matrix }}"
           #echo "matrix=$to_matrix" >> $GITHUB_OUTPUT
+          to_matrix=$(echo $to_matrix | jq -r . )
+          echo "matrix=$to_matrix" >> $GITHUB_OUTPUT
 
 
       - name: Set the matrix output
         id: set-matrix
         run: |
           #echo "matrix=${{ steps.generate.outputs.matrix }}"
-          echo "::set-output name=matrix::${{ steps.generate.outputs.matrix }}"
+          #echo "::set-output name=matrix::${{ steps.generate.outputs.matrix }}"
         # The step above is only to make the output appear in logs.
         
   dump_and_release:
