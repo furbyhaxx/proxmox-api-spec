@@ -31,7 +31,7 @@ jobs:
           git fetch --prune --tags
 
           # Run the script to get lines in the format "distro/version"
-          versions=$(./scripts/generate-version-list.sh)
+          versions=$(./scripts/generate-version-list.sh | sort -r)
 
           echo "Found versions:"
           echo "$versions"
@@ -44,8 +44,8 @@ jobs:
 
           # Loop over each line "distro/version"
           for line in $versions; do
-            distro=$(echo "$line" | cut -d/ -f1)
-            version=$(echo "$line" | cut -d/ -f2-)
+            distro=$(echo "$line" | cut -d/ -f2)
+            version=$(echo "$line" | cut -d/ -f1)
 
             # Check if the tag already exists locally
             if git rev-parse -q --verify "refs/tags/$version" >/dev/null; then
