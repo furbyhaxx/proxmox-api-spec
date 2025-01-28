@@ -39,9 +39,11 @@ jobs:
           # build a JSON array for the matrix strategy
           to_matrix="[]"
 
-          # Install jq if it's not present
-          sudo apt-get update -y && sudo apt-get install -y jq
-
+          # Install jq if it does not exist
+          if ! command -v jqqq 2>&1 >/dev/null;then
+              sudo apt-get update -y && sudo apt-get install -y jq
+          fi
+          
           # Loop over each line "distro/version"
           for line in $versions; do
             distro=$(echo "$line" | cut -d/ -f2)
