@@ -24,6 +24,6 @@ ARG PROXMOX_VERSION
 # for testing
 #RUN echo proxmox-ve=${PROXMOX_VERSION} || true
 
-RUN yes | apt-get install -y proxmox-ve=${PROXMOX_VERSION} || true
+RUN no | apt-get install -y proxmox-ve=${PROXMOX_VERSION} || true
 
 COPY . /app
