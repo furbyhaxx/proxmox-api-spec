@@ -30,7 +30,7 @@ jobs:
           git fetch --prune --tags
 
           # Run the script to get lines in the format "distro/version"
-          versions=$(./scripts/generate-version-list.sh | sort -r)
+          versions=$(./scripts/generate-version-list.sh | sort)
 
           echo "Found versions:"
           echo "$versions"
@@ -39,10 +39,10 @@ jobs:
           to_matrix="[]"
 
           # Install jq if it does not exist
-          if ! command -v jqqq 2>&1 >/dev/null;then
-              sudo apt-get update -y && sudo apt-get install -y jq
+          if ! command -v jq 2>&1 >/dev/null;then
+              sudo apt-get update -y && sudo apt-get install -y jq > /dev/null 2>&1
           fi
-          
+
           # Loop over each line "distro/version"
           for line in $versions; do
             distro=$(echo "$line" | cut -d/ -f2)
@@ -57,15 +57,10 @@ jobs:
             fi
           done
 
-          #echo "Matrix for build: $to_matrix"
-
-          # Use newer method of setting step outputs
-          #echo "::set-output name=matrix::${{ steps.generate.outputs.matrix }}"
-          #echo "matrix=$to_matrix" >> $GITHUB_OUTPUT
+          # Store JSON in matrix
           to_matrix=$(echo "$to_matrix" | jq -c . )
           echo "matrix=$to_matrix" >> $GITHUB_OUTPUT
 
-       
   dump_and_release:
     name: Process Release
     runs-on: ubuntu-latest
@@ -80,13 +75,13 @@ jobs:
         uses: actions/checkout@v3
         with:
           persist-credentials: true
-          
+
       - name: Prepare
         id: prepare
         run: |
           echo "distro=${{ matrix.distro-version.distro }}" >> "$GITHUB_OUTPUT"
           echo "proxmox_version=${{ matrix.distro-version.version }}" >> "$GITHUB_OUTPUT"
-          
+
       - name: Setup Container
         run: |
           DISTRO="${{ steps.prepare.outputs.distro }}"
@@ -97,6 +92,7 @@ jobs:
           echo "Building container for distro=$DISTRO and version=$PROXMOX_VERSION"
 
           sudo chmod +x dump-schema/dump-schema.pl
+
           # Build Docker image
           docker build --platform=linux/amd64 \
             --tag "proxmox-api" \
@@ -112,7 +108,7 @@ jobs:
 
           echo "Running container and dumping API schema"
 
-          # Run the container, executing the Perl script inside
+          # Run the container and execute dump script
           docker run --rm proxmox-api \
             perl /app/dump-schema.pl > "proxmox-ve-api-${PROXMOX_VERSION}.json"
 
@@ -120,37 +116,80 @@ jobs:
 
           echo ""
 
-          echo "$(cat "proxmox-ve-api-${PROXMOX_VERSION}.json")"
+#          echo "$(cat "proxmox-ve-api-${PROXMOX_VERSION}.json")"
 
       - name: Commit and push
         run: |
+          set -e
           PROXMOX_VERSION="${{ steps.prepare.outputs.proxmox_version }}"
+
+          # Config
+          MAX_RETRIES=5
+          RETRY_DELAY=5
+
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          git stash
-          git pull
-          git stash pop
+          # Create new tag
+          git tag "${PROXMOX_VERSION}" || true
 
-          # Create a new tag
-          git tag "${PROXMOX_VERSION}"
-
-          # Commit the new JSON file
+          # Add schema file
           git add "proxmox-ve-api-${PROXMOX_VERSION}.json"
+
+          # Try commit
           git commit -m "Add proxmox-ve-api-${PROXMOX_VERSION}.json" || echo "Nothing to commit"
 
-          # pull other changes
-          #git config pull.rebase false
-          
-          #git pull origin
+          ATTEMPT=1
 
-          # Push commit and tag
-          git push origin HEAD
-          git push origin "${PROXMOX_VERSION}"
+          # try push loop
+          while [ $ATTEMPT -le $MAX_RETRIES ]
+          do
+            echo "Push attempt #$ATTEMPT..."
+
+            # Stash local changes
+            git stash --include-untracked
+
+          # Fetch and rebase
+          git pull --rebase
+
+            # Re-apply stashed changes
+            # --quiet avoids noisy conflict output, remove if you need to debug
+            git stash pop --quiet || true
+
+            # Stage and commit again if needed
+            git add "proxmox-ve-api-${PROXMOX_VERSION}.json"
+            git commit -m "Add proxmox-ve-api-${PROXMOX_VERSION}.json" || echo "Nothing to commit"
+          
+            # Try pushing the commit
+            if git push origin HEAD; then
+              echo "Successfully pushed commit to origin."
+          
+              # Now push tag as well
+              if git push origin "${PROXMOX_VERSION}"; then
+                echo "Successfully pushed tag ${PROXMOX_VERSION} to origin."
+                break
+              else
+                echo "Failed to push tag ${PROXMOX_VERSION}."
+              fi
+            else
+              echo "Failed to push to origin."
+            fi
+      
+            if [ $ATTEMPT -eq $MAX_RETRIES ]; then
+              echo "Reached max retries ($MAX_RETRIES). Failing..."
+              exit 1
+            else
+              echo "Retrying in ${RETRY_DELAY} seconds..."
+              sleep $RETRY_DELAY
+            fi
+      
+            ATTEMPT=$((ATTEMPT+1))
+          done
+          
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
-#        if: ${{ hashFiles("proxmox-ve-api-${{ steps.prepare.outputs.proxmox_version }}.json") != '' }}
+        #        if: ${{ hashFiles("proxmox-ve-api-${{ steps.prepare.outputs.proxmox_version }}.json") != '' }}
         with:
           tag_name: ${{ steps.prepare.outputs.proxmox_version }}
           name: "Proxmox VE API Schema ${{ steps.prepare.outputs.proxmox_version }}"
@@ -158,4 +197,3 @@ jobs:
           draft: false
           prerelease: false
           files: proxmox-ve-api-${{ steps.prepare.outputs.proxmox_version }}.json
-
