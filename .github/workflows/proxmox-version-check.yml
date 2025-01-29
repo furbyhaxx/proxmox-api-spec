@@ -67,7 +67,7 @@ jobs:
 
        
   dump_and_release:
-    name: Dump APIs and make releases
+    name: Process Release
     runs-on: ubuntu-latest
     needs: get_versions
     strategy:
@@ -87,7 +87,7 @@ jobs:
           echo "distro=${{ matrix.distro-version.distro }}" >> "$GITHUB_OUTPUT"
           echo "proxmox_version=${{ matrix.distro-version.version }}" >> "$GITHUB_OUTPUT"
           
-      - name: Setup Docker Container
+      - name: Setup Container
         run: |
           DISTRO="${{ steps.prepare.outputs.distro }}"
           PROXMOX_VERSION="${{ steps.prepare.outputs.proxmox_version }}"
@@ -104,7 +104,7 @@ jobs:
             --build-arg PROXMOX_VERSION="${PROXMOX_VERSION}" \
             "./dump-schema"
 
-      - name: Run container and extract API
+      - name: Dump API
         id: extract_api
         run: |
           DISTRO="${{ steps.prepare.outputs.distro }}"
@@ -122,7 +122,7 @@ jobs:
 
           echo "$(cat "proxmox-ve-api-${PROXMOX_VERSION}.json")"
 
-      - name: Commit and push JSON file
+      - name: Commit and push
         run: |
           PROXMOX_VERSION="${{ steps.prepare.outputs.proxmox_version }}"
           git config user.name "github-actions[bot]"
