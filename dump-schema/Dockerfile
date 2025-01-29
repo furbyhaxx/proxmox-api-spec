@@ -6,8 +6,10 @@ ARG DISTRO=bookworm
 
 RUN apt-get update && apt-get install -y wget
 
+ARG DISTRO=bookworm
+
 # Debian Buster: install perl JSON module
-RUN if [[ "$DISTRO" = "buster" ]]; then apt-get install libjson-perl -y fi
+RUN if [ "${DISTRO}" = "buster" ] ; then apt-get install -y libjson-perl ; fi
 
 RUN mkdir -p /etc/apt/sources.list.d && \
     echo "deb http://download.proxmox.com/debian/pve ${DISTRO} pve-no-subscription" >/etc/apt/sources.list.d/pve-install-repo.list && \
