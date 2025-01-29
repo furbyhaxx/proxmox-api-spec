@@ -8,6 +8,12 @@ while IFS= read -r distro; do
   # Skip empty lines just in case
   [[ -z "$distro" ]] && continue
 
+  # skip proxmox 5
+  [[ "$distro" = "stretch" ]] && continue
+
+  # skip proxmox 4
+  [[ "$distro" = "jessie" ]] && continue
+
     # Fetch all versions for the given distro
     version_list=$(curl -s http://download.proxmox.com/debian/pve/dists/$distro/pve-no-subscription/binary-amd64/ \
       | grep "proxmox-ve_" \
