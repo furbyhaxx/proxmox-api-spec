@@ -1,9 +1,10 @@
 ARG DISTRO
-ARG PROXMOX_VERSION
-
-ENV DEBIAN_FRONTEND=noninteractive
 
 FROM debian:${DISTRO}
+
+ARG DISTRO
+ARG PROXMOX_VERSION
+ENV DEBIAN_FRONTEND=noninteractive
 
 # 1. Add proxmox repo, key and update repo index
 RUN mkdir -p /etc/apt/sources.list.d \
