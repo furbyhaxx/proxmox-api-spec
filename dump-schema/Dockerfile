@@ -16,6 +16,6 @@ RUN mkdir -p /etc/apt/sources.list.d && \
 
 ARG PROXMOX_VERSION
 
-RUN echo proxmox-ve=${PROXMOX_VERSION} || true
+RUN apt-get install -y proxmox-ve=${PROXMOX_VERSION} || true
 
 COPY . /app
