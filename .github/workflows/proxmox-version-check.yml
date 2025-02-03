@@ -15,6 +15,7 @@ jobs:
 
     outputs:
       matrix: ${{ steps.generate.outputs.matrix }}
+      has_new_versions: ${{ steps.generate.outputs.has_new_versions }}
 
     steps:
       - name: Check out repository
@@ -39,9 +40,11 @@ jobs:
           to_matrix="[]"
 
           # Install jq if it does not exist
-          if ! command -v jq 2>&1 >/dev/null;then
+          if ! command -v jq 2>&1 >/dev/null; then
               sudo apt-get update -y && sudo apt-get install -y jq > /dev/null 2>&1
           fi
+
+          has_new_versions="0"
 
           # Loop over each line "distro/version"
           for line in $versions; do
@@ -52,6 +55,7 @@ jobs:
             if git rev-parse -q --verify "refs/tags/$version" >/dev/null; then
               echo "Tag $version already exists. Skipping."
             else
+              has_new_versions="1"
               # Add to JSON array for matrix
               to_matrix=$(echo "$to_matrix" | jq --arg distro "$distro" --arg version "$version" '. + [{"distro": $distro, "version": $version}]')
             fi
@@ -60,11 +64,14 @@ jobs:
           # Store JSON in matrix
           to_matrix=$(echo "$to_matrix" | jq -c . )
           echo "matrix=$to_matrix" >> $GITHUB_OUTPUT
+          echo "has_new_versions=$has_new_versions" >> $GITHUB_OUTPUT
 
   dump_and_release:
     name: Process Release
     runs-on: ubuntu-latest
     needs: get_versions
+    continue-on-error: true
+    if: ${{ needs.get_versions.outputs.has_new_versions != '0' }}
     strategy:
       fail-fast: false
       matrix:
